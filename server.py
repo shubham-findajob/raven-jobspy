@@ -12,11 +12,18 @@ SEARCHES = [
     {'keyword': 'AI analyst',          'location': 'India',   'remote': False},
     {'keyword': 'data analyst',        'location': 'India',   'remote': False},
     {'keyword': 'operations manager',  'location': 'India',   'remote': False},
-    {'keyword': 'business analyst',    'location': 'Germany', 'remote': True},
-    {'keyword': 'data analyst',        'location': 'Germany', 'remote': True},
+    {'keyword': 'business analyst remote',     'location': 'Germany',     'remote': True},
+    {'keyword': 'data analyst remote',         'location': 'Germany',     'remote': True},
+    {'keyword': 'business analyst remote',     'location': 'France',      'remote': True},
+    {'keyword': 'data analyst remote',         'location': 'Netherlands', 'remote': True},
+    {'keyword': 'AI analyst remote',           'location': 'Europe',      'remote': True},
+    {'keyword': 'growth manager remote',       'location': 'Europe',      'remote': True},
 ]
 
 FIELDS = ['id', 'title', 'company', 'location', 'job_url', 'date_posted', 'description', 'job_type']
+
+# Staffing agencies / job-board aggregators that post fake bulk listings
+BLOCKED_COMPANIES = {'scoutit', 'argo intern', 'wake up whistle', 'toloka annotators', 'yo it consulting', 'crossing hurdles', 'talentgigs', 'golden opportunities'}
 
 @app.route('/health')
 def health():
@@ -51,7 +58,17 @@ def jobs():
     seen, unique = set(), []
     for j in all_jobs:
         key = str(j.get('job_url') or j.get('id') or '')
-        if key and key not in seen:
+        if not key or key in seen:
+            continue
+        # Skip blocked companies
+        co = str(j.get('company', '')).lower()
+        if any(b in co for b in BLOCKED_COMPANIES):
+            continue
+        # Skip non-English / student jobs from Germany searches
+        title = str(j.get('title', ''))
+        if any(w in title.lower() for w in ['werkstudent', 'praktikum', 'entwickler', 'annotator', 'annotieren', '(m/w/d)', 'befristet', 'spezialist', 'berater', 'ingenieur', 'sachbearbeiter']):
+            continue
+        if key not in seen:
             seen.add(key)
             # Convert non-serializable types
             for k, v in j.items():
