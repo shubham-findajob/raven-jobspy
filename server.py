@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from jobspy import scrape_jobs
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import traceback
 
 app = Flask(__name__)
@@ -29,30 +30,39 @@ BLOCKED_COMPANIES = {'scoutit', 'argo intern', 'wake up whistle', 'toloka annota
 def health():
     return 'ok'
 
+def run_search(s, hours):
+    try:
+        df = scrape_jobs(
+            site_name=['linkedin'],
+            search_term=s['keyword'],
+            location=s['location'],
+            results_wanted=25,
+            hours_old=hours,
+            is_remote=s.get('remote', False),
+            linkedin_fetch_description=False,
+        )
+        if df is not None and not df.empty:
+            available = [f for f in FIELDS if f in df.columns]
+            return df[available].fillna('').to_dict('records'), None
+        return [], None
+    except Exception as e:
+        print(f"Error: {s['keyword']} — {traceback.format_exc()}")
+        return [], {'search': s['keyword'], 'error': str(e)}
+
 @app.route('/jobs')
 def jobs():
     hours = int(request.args.get('hours', 25))
     all_jobs = []
     errors = []
 
-    for s in SEARCHES:
-        try:
-            df = scrape_jobs(
-                site_name=['linkedin'],
-                search_term=s['keyword'],
-                location=s['location'],
-                results_wanted=25,
-                hours_old=hours,
-                is_remote=s.get('remote', False),
-                linkedin_fetch_description=False,
-            )
-            if df is not None and not df.empty:
-                available = [f for f in FIELDS if f in df.columns]
-                records = df[available].fillna('').to_dict('records')
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = {executor.submit(run_search, s, hours): s for s in SEARCHES}
+        for future in as_completed(futures):
+            records, error = future.result()
+            if error:
+                errors.append(error)
+            else:
                 all_jobs.extend(records)
-        except Exception as e:
-            errors.append({'search': s['keyword'], 'error': str(e)})
-            print(f"Error: {s['keyword']} — {traceback.format_exc()}")
 
     # Deduplicate by job_url
     seen, unique = set(), []
