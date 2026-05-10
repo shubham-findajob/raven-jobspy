@@ -31,13 +31,12 @@ def jobs():
     for s in SEARCHES:
         try:
             df = scrape_jobs(
-                site_name=['linkedin', 'indeed'],
+                site_name=['linkedin'],
                 search_term=s['keyword'],
                 location=s['location'],
-                results_wanted=20,
+                results_wanted=25,
                 hours_old=hours,
                 is_remote=s.get('remote', False),
-                country_indeed='India' if 'India' in s['location'] else 'worldwide',
                 linkedin_fetch_description=False,
             )
             if df is not None and not df.empty:
