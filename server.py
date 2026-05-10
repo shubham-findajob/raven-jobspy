@@ -98,9 +98,15 @@ def jobs():
         co = str(j.get('company', '')).lower()
         if any(b in co for b in BLOCKED_COMPANIES):
             continue
-        # Skip recruiting / TA roles (not what Shubham is applying for)
+        # Skip recruiting / TA and sneaky sales roles
         title = str(j.get('title', ''))
-        if any(w in title.lower() for w in ['talent acquisition', 'recruiter', 'recruitment', 'hr manager', 'human resources']):
+        if any(w in title.lower() for w in [
+            'talent acquisition', 'recruiter', 'recruitment', 'hr manager', 'human resources',
+            'account executive', 'account manager', 'key account', 'enterprise account',
+            'sales development', ' sdr', ' bdr', 'inside sales', 'outside sales',
+            'territory manager', 'pre-sales', 'presales', 'customer success manager',
+            'renewal manager', 'revenue enablement',
+        ]):
             continue
         # Skip non-English / student jobs from Germany searches
         if any(w in title.lower() for w in ['werkstudent', 'praktikum', 'entwickler', 'annotator', 'annotieren', '(m/w/d)', 'befristet', 'spezialist', 'berater', 'ingenieur', 'sachbearbeiter']):
