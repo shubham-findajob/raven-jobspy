@@ -24,7 +24,31 @@ SEARCHES = [
 FIELDS = ['id', 'title', 'company', 'location', 'job_url', 'date_posted', 'description', 'job_type']
 
 # Staffing agencies / job-board aggregators that post fake bulk listings
-BLOCKED_COMPANIES = {'scoutit', 'argo intern', 'wake up whistle', 'toloka annotators', 'yo it consulting', 'crossing hurdles', 'talentgigs', 'golden opportunities'}
+BLOCKED_COMPANIES = {
+    # known spam / fake-listing mills
+    'scoutit', 'argo intern', 'wake up whistle', 'toloka annotators',
+    'yo it consulting', 'crossing hurdles', 'talentgigs', 'golden opportunities',
+
+    # job boards & aggregators (repost others' jobs, no real contact)
+    'jobgether', 'reycruit', 'mygwork', 'dataannotation', 'efinancialcareers',
+    'digital lead international', 'quik hire staffing', 'nas nuvens', 'bm digital',
+    'foundit', 'shine', 'timesjobs', 'apna', 'instahyre', 'iimjobs', 'hirist',
+
+    # Indian staffing / body-shop agencies
+    'uplers', 'teamlease', 'quess', 'manpowergroup', 'manpower group',
+    'randstad', 'adecco', 'gi group', 'abc consultants', 'careernet',
+    'xpheno', 'antal international', 'ikya', 'firstmeridian',
+
+    # Global staffing / executive search (wrong channel for cold email)
+    'michael page', 'hays', 'robert half', 'korn ferry', 'spencer stuart',
+    'egon zehnder', 'russell reynolds', 'hudson', 'kelly services',
+
+    # Anonymous / uncontactable listings
+    'confidential',
+
+    # Irrelevant industries
+    'wpp media', 'frankfinn', 'alorica', 'muthoottu',
+}
 
 @app.route('/health')
 def health():
@@ -74,8 +98,11 @@ def jobs():
         co = str(j.get('company', '')).lower()
         if any(b in co for b in BLOCKED_COMPANIES):
             continue
-        # Skip non-English / student jobs from Germany searches
+        # Skip recruiting / TA roles (not what Shubham is applying for)
         title = str(j.get('title', ''))
+        if any(w in title.lower() for w in ['talent acquisition', 'recruiter', 'recruitment', 'hr manager', 'human resources']):
+            continue
+        # Skip non-English / student jobs from Germany searches
         if any(w in title.lower() for w in ['werkstudent', 'praktikum', 'entwickler', 'annotator', 'annotieren', '(m/w/d)', 'befristet', 'spezialist', 'berater', 'ingenieur', 'sachbearbeiter']):
             continue
         if key not in seen:
